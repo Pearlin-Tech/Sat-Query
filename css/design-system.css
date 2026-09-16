@@ -1,0 +1,326 @@
+/* ============================================================
+   SATQUERY AI — DESIGN SYSTEM
+   Space + Science + AI + Geospatial Intelligence + Trust
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ─────────────────────────────────────────
+   COLOR TOKENS
+   ───────────────────────────────────────── */
+:root {
+  /* Deep space palette */
+  --space-950: hsl(222, 47%, 4%);
+  --space-900: hsl(222, 44%, 7%);
+  --space-850: hsl(222, 40%, 10%);
+  --space-800: hsl(222, 37%, 13%);
+  --space-700: hsl(222, 30%, 18%);
+  --space-600: hsl(222, 25%, 25%);
+  --space-500: hsl(222, 20%, 35%);
+  --space-400: hsl(222, 15%, 50%);
+  --space-300: hsl(222, 12%, 65%);
+  --space-200: hsl(222, 10%, 80%);
+  --space-100: hsl(222, 8%, 92%);
+
+  /* Cyan — primary action / AI highlight */
+  --cyan-600: hsl(192, 100%, 20%);
+  --cyan-500: hsl(192, 100%, 30%);
+  --cyan-400: hsl(192, 100%, 42%);
+  --cyan-300: hsl(192, 95%, 60%);
+  --cyan-200: hsl(192, 90%, 75%);
+  --cyan-100: hsl(192, 85%, 90%);
+
+  /* Aurora green — vegetation / positive states */
+  --green-600: hsl(142, 70%, 20%);
+  --green-500: hsl(142, 65%, 30%);
+  --green-400: hsl(142, 60%, 45%);
+  --green-300: hsl(142, 55%, 60%);
+  --green-200: hsl(142, 50%, 75%);
+
+  /* Amber — warnings / change detection */
+  --amber-500: hsl(38, 95%, 45%);
+  --amber-400: hsl(38, 95%, 58%);
+  --amber-300: hsl(38, 90%, 72%);
+
+  /* Rose — alerts / critical */
+  --rose-500: hsl(350, 80%, 42%);
+  --rose-400: hsl(350, 80%, 58%);
+  --rose-300: hsl(350, 75%, 72%);
+
+  /* Purple — analysis / tools */
+  --purple-500: hsl(265, 70%, 40%);
+  --purple-400: hsl(265, 65%, 58%);
+  --purple-300: hsl(265, 60%, 72%);
+
+  /* Blue — water / geospatial */
+  --blue-500: hsl(210, 80%, 38%);
+  --blue-400: hsl(210, 75%, 55%);
+  --blue-300: hsl(210, 70%, 70%);
+
+  /* ─── Semantic tokens (Minimalistic Light Theme) ─── */
+  --bg-base:       hsl(0, 0%, 100%);     /* White */
+  --bg-surface:    hsl(0, 0%, 98%);      /* Very Light Gray */
+  --bg-elevated:   hsl(0, 0%, 96%);      /* Light Gray */
+  --bg-panel:      hsl(0, 0%, 94%);      /* Gray */
+  --bg-hover:      hsl(0, 0%, 92%);      /* Hover Gray */
+
+  --border-subtle:  hsla(0, 0%, 0%, 0.08);
+  --border-default: hsla(0, 0%, 0%, 0.15);
+  --border-active:  var(--cyan-500);
+
+  --text-primary:   hsl(220, 30%, 15%);  /* Near Black */
+  --text-secondary: hsl(220, 20%, 40%);  /* Dark Gray */
+  --text-muted:     hsl(220, 10%, 60%);  /* Mid Gray */
+  --text-accent:    var(--cyan-600);
+
+  --accent-primary:   hsl(28, 100%, 55%); /* Saffron */
+  --accent-secondary: hsl(115, 89%, 30%); /* India Green */
+  --accent-warning:   var(--amber-500);
+  --accent-danger:    var(--rose-500);
+  --accent-tool:      hsl(210, 80%, 40%); /* Standard Blue */
+
+  /* ─── Glassmorphism (Light) ─── */
+  --glass-bg:     hsla(0, 0%, 100%, 0.85);
+  --glass-border: hsla(0, 0%, 0%, 0.1);
+  --glass-blur:   saturate(150%) blur(20px);
+
+  /* ─── Glow effects (Subtle Shadows) ─── */
+  --glow-cyan:   0 4px 12px hsla(192, 100%, 30%, 0.15);
+  --glow-green:  0 4px 12px hsla(142, 70%, 20%, 0.15);
+  --glow-purple: 0 4px 12px hsla(265, 70%, 40%, 0.15);
+
+  /* ─── Spacing ─── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* ─── Radius ─── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-full: 9999px;
+
+  /* ─── Typography ─── */
+  --font-sans:  'Inter', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:  'Courier New', monospace;
+
+  --text-xs:   0.6875rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg:   1.0625rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+
+  /* ─── Transitions ─── */
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Shadows ─── */
+  --shadow-sm:  0 1px 3px hsla(0,0%,0%,0.4), 0 1px 2px hsla(0,0%,0%,0.3);
+  --shadow-md:  0 4px 12px hsla(0,0%,0%,0.4), 0 2px 6px hsla(0,0%,0%,0.3);
+  --shadow-lg:  0 10px 30px hsla(0,0%,0%,0.5), 0 4px 12px hsla(0,0%,0%,0.4);
+  --shadow-xl:  0 20px 60px hsla(0,0%,0%,0.6), 0 8px 24px hsla(0,0%,0%,0.5);
+
+  /* ─── Z-index scale ─── */
+  --z-below:   -1;
+  --z-base:    0;
+  --z-raised:  10;
+  --z-overlay: 100;
+  --z-modal:   200;
+  --z-toast:   300;
+  --z-top:     9999;
+}
+
+/* ─────────────────────────────────────────
+   CSS RESET & BASE
+   ───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────────────────────────────
+   TYPOGRAPHY
+   ───────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
+
+p { color: var(--text-secondary); line-height: 1.7; }
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover { color: var(--cyan-200); }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+/* ─────────────────────────────────────────
+   SCROLLBAR
+   ───────────────────────────────────────── */
+:root { scrollbar-color: var(--space-600) var(--space-900); }
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--space-900); }
+  ::-webkit-scrollbar-thumb { background: var(--space-600); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--space-500); }
+}
+
+/* ─────────────────────────────────────────
+   FOCUS STATES (Accessibility)
+   ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─────────────────────────────────────────
+   REDUCED MOTION
+   ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─────────────────────────────────────────
+   GLASSMORPHISM UTILITY
+   ───────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.glass-subtle {
+  background: var(--bg-elevated);
+  border: 1px solid hsla(192, 40%, 50%, 0.08);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+}
+
+/* ─────────────────────────────────────────
+   STATUS INDICATORS
+   ───────────────────────────────────────── */
+.status-live   { color: var(--green-300); }
+.status-demo   { color: var(--amber-300); }
+.status-planned{ color: var(--space-400); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge-live    { background: hsla(142,60%,45%,0.15); color: var(--green-300); border: 1px solid hsla(142,60%,45%,0.3); }
+.badge-demo    { background: hsla(38,95%,58%,0.15);  color: var(--amber-300); border: 1px solid hsla(38,95%,58%,0.3); }
+.badge-planned { background: hsla(222,20%,35%,0.4);  color: var(--space-300); border: 1px solid hsla(222,20%,35%,0.6); }
+.badge-cyan    { background: hsla(192,100%,42%,0.15); color: var(--cyan-300); border: 1px solid hsla(192,100%,42%,0.3); }
+
+/* ─────────────────────────────────────────
+   SURFACE CARDS
+   ───────────────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+.card:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+}
+.card-active {
+  border-color: var(--border-active);
+  box-shadow: var(--glow-cyan);
+}
+
+/* ─────────────────────────────────────────
+   ACCENT DIVIDER
+   ───────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-subtle), transparent);
+  margin: var(--space-4) 0;
+}
+
+/* ─────────────────────────────────────────
+   MONO / CODE LABEL
+   ───────────────────────────────────────── */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────
+   GLOW PULSE (for active AI states)
+   ───────────────────────────────────────── */
+.glow-cyan   { box-shadow: var(--glow-cyan); }
+.glow-green  { box-shadow: var(--glow-green); }
+.glow-purple { box-shadow: var(--glow-purple); }
