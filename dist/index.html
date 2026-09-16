@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <script>
+    // Prevent FOUC — set color scheme before render
+    const cs = localStorage.getItem('color-scheme');
+    if (cs) document.querySelector('meta[name="color-scheme"]').content = cs;
+  </script>
+
+  <!-- SEO -->
+  <title>SatQuery AI — Intelligent Geospatial Analysis Platform</title>
+  <meta name="description" content="SatQuery AI is an evidence-first geospatial intelligence platform that understands natural language questions, validates satellite data, selects specialist analytical tools, and explains results with scientific rigor.">
+  <meta name="keywords" content="satellite imagery, geospatial AI, NDVI, change detection, remote sensing, SIH, Sentinel-2, vegetation analysis">
+  <meta property="og:title" content="SatQuery AI — Intelligent Geospatial Analysis Platform">
+  <meta property="og:description" content="Ask questions about satellite imagery in natural language. Get evidence-backed, scientifically valid answers.">
+
+  <!-- CSS -->
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+
+  <!-- GeoTIFF -->
+  <script src="https://unpkg.com/geotiff@2.0.7/dist-browser/geotiff.js"></script>
+
+  <style>
+    /* ── Extra page-level styles ── */
+    .sidebar-toggle-btn {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: var(--space-2); border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-toggle-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* Expert mode extras */
+    body.expert-mode .expert-only { display: flex !important; }
+    .expert-only { display: none; }
+
+    /* Demo mode */
+    #demo-mode-overlay { text-align: center; }
+    #demo-mode-overlay h2 {
+      font-size: var(--text-4xl); font-weight: 700; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--cyan-300), var(--text-primary));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* Voice indicator */
+    #voice-indicator { display: none; }
+    #voice-indicator.active { display: flex; }
+
+    /* Trace panel toggle */
+    .trace-open { display: block !important; }
+
+    /* Map bottom bar */
+    .map-nlp-bar {
+      background: var(--bg-elevated); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-subtle);
+      padding: var(--space-2) var(--space-3);
+      display: flex; align-items: center; gap: var(--space-2);
+    }
+
+    /* Judge mode access */
+    #judge-access-btn {
+      font-size: var(--text-xs); opacity: 0.4;
+      transition: opacity var(--transition-normal);
+    }
+    #judge-access-btn:hover { opacity: 1; }
+
+    /* Comparison slider map */
+    .split-label {
+      position: absolute; top: var(--space-3); left: 50%; transform: translateX(-50%);
+      z-index: var(--z-raised);
+      background: var(--bg-elevated); backdrop-filter: blur(8px);
+      border: 1px solid var(--border-subtle); border-radius: var(--radius-full);
+      padding: var(--space-1) var(--space-4);
+      font-size: var(--text-xs); font-weight: 700; color: var(--text-muted);
+    }
+
+    /* Leaflet draw tooltip override */
+    .leaflet-draw-tooltip { background: var(--bg-elevated) !important; color: var(--text-primary) !important; border-color: var(--border-active) !important; }
+
+    /* Fix leaflet container */
+    #leaflet-map { min-height: 100%; }
+
+    /* Loading overlay */
+    #page-loader {
+      position: fixed; inset: 0; background: var(--bg-base);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: calc(var(--z-top) + 1);
+      transition: opacity 0.5s ease;
+    }
+    #page-loader.hidden { opacity: 0; pointer-events: none; }
+
+    .loader-logo {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, var(--cyan-500), var(--purple-500));
+      border-radius: var(--radius-xl);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--glow-cyan);
+      animation: float 2s ease-in-out infinite;
+      margin-bottom: var(--space-5);
+    }
+    .loader-text {
+      font-size: var(--text-xl); font-weight: 700;
+      background: linear-gradient(135deg, var(--cyan-300), var(--text-primary));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: var(--space-3);
+    }
+    .loader-sub { font-size: var(--text-sm); color: var(--text-muted); font-family: var(--font-mono); }
+  </style>
+  <script type="module" crossorigin src="/assets/index-DTkDOVEc.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-uC7aULll.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     PAGE LOADER
+════════════════════════════════════════════ -->
+<div id="page-loader" role="status" aria-label="Loading SatQuery AI">
+  <div class="loader-logo" aria-hidden="true">🛰️</div>
+  <div class="loader-text">SatQuery AI</div>
+  <div class="loader-sub">Initializing geospatial intelligence...</div>
+  <div class="processing-dots" style="margin-top:var(--space-4)">
+    <div class="processing-dot"></div>
+    <div class="processing-dot"></div>
+    <div class="processing-dot"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════ -->
+<div id="app">
+
+  <header class="main-header" role="banner" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--bg-elevated); border-bottom: 1px solid var(--border-subtle);">
+    <div class="header-logo-section" style="display: flex; align-items: center; gap: var(--space-3);">
+      <div style="font-size: 28px; background: linear-gradient(135deg, var(--cyan-500), var(--purple-500)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🛰️</div>
+      <div class="header-title">
+        <h1 style="margin: 0; font-size: 1.25rem; font-weight: 700;">SatQuery AI</h1>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Ask questions. Understand the Earth.</span>
+      </div>
+    </div>
+    
+    <div class="header-actions" style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="status-indicator" style="display: flex; align-items: center; gap: var(--space-2); font-size: 0.8rem; color: var(--text-muted);">
+        <div class="health-dot ok" style="width: 8px; height: 8px; border-radius: 50%; background: var(--green-400);"></div> System Online
+      </div>
+      <button class="btn btn-ghost" aria-label="Help">Help</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('settings-modal-backdrop').classList.add('open')" aria-label="Settings">⚙️ Settings</button>
+    </div>
+  </header>
+
+  <!-- ══════════════ MAIN CONTENT ══════════════ -->
+  <main id="main-content" role="main">
+
+      <!-- ════════ HOME VIEW ════════ -->
+      <section id="home-view" class="view" aria-label="Dashboard">
+        <div class="dashboard-content">
+
+          <!-- Hero -->
+          <div class="dashboard-hero" style="text-align: center; max-width: 800px; margin: 0 auto; padding-top: var(--space-8);">
+            <h1 class="hero-title" style="font-size: 3rem; margin-bottom: var(--space-4);">What do you want to know about this area?</h1>
+
+            <!-- Main CTA -->
+            <div style="display:flex; gap:var(--space-3); justify-content: center; flex-wrap:wrap; margin-bottom: var(--space-6);">
+              <button id="home-search-btn" class="btn btn-secondary btn-lg" aria-label="Search a place or coordinates" onclick="navigateTo('workspace')">
+                🔍 Search a place or coordinates
+              </button>
+              <button id="home-upload-btn" class="btn btn-secondary btn-lg" aria-label="Upload GeoTIFF/TIFF" onclick="navigateTo('workspace'); document.getElementById('file-input')?.click()">
+                📂 Upload GeoTIFF/TIFF
+              </button>
+              <button id="home-start-query" class="btn btn-primary btn-lg" aria-label="Ask SatQuery" onclick="navigateTo('workspace')">
+                💬 Ask SatQuery
+              </button>
+            </div>
+            
+            <!-- Example Chips -->
+            <div style="display: flex; gap: var(--space-2); justify-content: center; flex-wrap: wrap;">
+              <span class="chip" style="cursor:pointer; background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: var(--space-2) var(--space-3); border-radius: var(--radius-full);" onclick="document.getElementById('query-input').value='What changed here?'; navigateTo('workspace')">"What changed here?"</span>
+              <span class="chip" style="cursor:pointer; background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: var(--space-2) var(--space-3); border-radius: var(--radius-full);" onclick="document.getElementById('query-input').value='Where is the vegetation?'; navigateTo('workspace')">"Where is the vegetation?"</span>
+              <span class="chip" style="cursor:pointer; background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: var(--space-2) var(--space-3); border-radius: var(--radius-full);" onclick="document.getElementById('query-input').value='Show built-up areas'; navigateTo('workspace')">"Show built-up areas"</span>
+              <span class="chip" style="cursor:pointer; background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: var(--space-2) var(--space-3); border-radius: var(--radius-full);" onclick="document.getElementById('query-input').value='Compare these dates'; navigateTo('workspace')">"Compare these dates"</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════ WORKSPACE VIEW ════════ -->
+      <section id="workspace-view" class="view" aria-label="Analysis Workspace">
+
+        <!-- LEFT PANEL -->
+        <div class="workspace-left" role="complementary" aria-label="Query and data panel">
+
+          <!-- Upload / Dataset -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">📂</span> Dataset</div>
+              <button class="btn btn-ghost btn-sm" id="load-demo-btn-ws" aria-label="Load demo dataset">Load Demo</button>
+            </div>
+
+            <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Upload satellite image — click or drag and drop">
+              <span class="drop-zone-icon" aria-hidden="true">🛰️</span>
+              <div class="drop-zone-title">Upload Satellite Image</div>
+              <div class="drop-zone-sub">Click or drag GeoTIFF / PNG / JPEG</div>
+              <div class="drop-zone-formats">
+                <span class="badge badge-cyan">GeoTIFF</span>
+                <span class="badge badge-demo">PNG</span>
+                <span class="badge badge-demo">JPEG</span>
+              </div>
+            </div>
+            <input type="file" id="file-input" accept=".tif,.tiff,.geotiff,.png,.jpg,.jpeg" style="display:none" aria-label="File upload">
+
+            <!-- Dataset Profile -->
+            <div id="dataset-profile-container" style="margin-top:var(--space-3)"></div>
+          </div>
+
+          <!-- Query -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">💬</span> Ask a Question</div>
+              <button id="voice-btn" class="btn btn-ghost btn-sm" aria-label="Voice query — click to speak" title="Ask by voice">🎙️</button>
+            </div>
+
+            <!-- Voice Indicator -->
+            <div id="voice-indicator" class="voice-indicator" role="status" aria-live="polite" style="margin-bottom:var(--space-3)">
+              <div class="voice-waveform" aria-hidden="true">
+                <div class="voice-bar"></div><div class="voice-bar"></div>
+                <div class="voice-bar"></div><div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+              </div>
+              <div style="font-size:var(--text-sm);color:var(--rose-300)">Listening...</div>
+            </div>
+
+            <div class="query-input-wrapper">
+              <textarea
+                id="query-input"
+                class="query-input"
+                placeholder="Has vegetation decreased around Ahmedabad?&#10;What changed between 2022 and 2023?&#10;Show urban expansion in this region..."
+                aria-label="Natural language query input"
+                rows="3"
+              ></textarea>
+              <div class="query-input-actions">
+                <button id="query-submit" class="btn btn-primary btn-sm" aria-label="Submit query">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+                  Ask
+                </button>
+              </div>
+            </div>
+
+            <!-- Suggestions -->
+            <div id="suggestions-container" style="margin-top:var(--space-3)"></div>
+          </div>
+
+          <!-- AOI Drawing Tools -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">✏️</span> Draw AOI</div>
+              <button id="clear-aoi-btn" class="btn btn-ghost btn-sm" aria-label="Clear area of interest">Clear</button>
+            </div>
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3)">
+              <button class="map-tool-btn draw-tool-btn" data-draw-type="rectangle" title="Draw rectangle" aria-label="Draw rectangle AOI">▭</button>
+              <button class="map-tool-btn draw-tool-btn" data-draw-type="polygon" title="Draw polygon" aria-label="Draw polygon AOI">⬡</button>
+              <button class="map-tool-btn draw-tool-btn" data-draw-type="circle" title="Draw circle" aria-label="Draw circle AOI">○</button>
+              <button class="map-tool-btn draw-tool-btn" data-draw-type="marker" title="Place marker" aria-label="Place point marker">📍</button>
+            </div>
+            <div id="aoi-info-container"></div>
+          </div>
+
+          <!-- NLP Map Commands -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">🗺️</span> Map Commands</div>
+            </div>
+            <div class="query-input-wrapper">
+              <input type="text" id="nlp-command-input" class="form-input" placeholder="Zoom into the changed region..." aria-label="Natural language map command">
+            </div>
+            <button id="nlp-command-submit" class="btn btn-secondary btn-sm" style="margin-top:var(--space-2);width:100%" aria-label="Execute map command">Execute Command</button>
+            <div style="margin-top:var(--space-2)">
+              <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-1)">Try:</div>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--space-1)">
+                <span class="chip" style="cursor:pointer" onclick="document.getElementById('nlp-command-input').value=this.textContent" role="button" tabindex="0">"Zoom into changed region"</span>
+                <span class="chip" style="cursor:pointer" onclick="document.getElementById('nlp-command-input').value=this.textContent" role="button" tabindex="0">"Show vegetation only"</span>
+                <span class="chip" style="cursor:pointer" onclick="document.getElementById('nlp-command-input').value=this.textContent" role="button" tabindex="0">"Reset map"</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analysis Steps -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">📋</span> Analysis Plan</div>
+            </div>
+            <div id="analysis-steps-container"></div>
+          </div>
+        </div>
+
+        <!-- CENTER — MAP -->
+        <div class="workspace-center">
+          <div id="map-container">
+            <div id="leaflet-map" aria-label="Interactive geospatial map" role="application"></div>
+
+            <!-- Map tool controls -->
+            <div class="map-controls" role="toolbar" aria-label="Map tools">
+              <button class="map-tool-btn" onclick="import('./js/map-controller.js').then(m => m.getMap()?.zoomIn())" title="Zoom in" aria-label="Zoom in">+</button>
+              <button class="map-tool-btn" onclick="import('./js/map-controller.js').then(m => m.getMap()?.zoomOut())" title="Zoom out" aria-label="Zoom out">−</button>
+              <div style="height:8px"></div>
+              <button class="map-tool-btn" onclick="addDemoNDVI()" title="Add NDVI layer" aria-label="Add vegetation layer" id="add-ndvi-btn">🌿</button>
+              <button class="map-tool-btn" onclick="addDemoChange()" title="Add change layer" aria-label="Add change detection layer" id="add-change-btn">🔄</button>
+            </div>
+
+            <!-- Timeline -->
+            <div class="map-overlay-bar" role="region" aria-label="Timeline control">
+              <div style="font-size:var(--text-xs);font-weight:700;color:var(--text-muted);white-space:nowrap">⏱ TIME TRAVEL</div>
+              <div class="timeline-container" style="flex:1;padding:0">
+                <div class="timeline-track" id="timeline-track" role="slider" aria-label="Timeline" aria-valuemin="2022" aria-valuemax="2025" aria-valuenow="2023">
+                  <div class="timeline-fill" id="timeline-fill" style="width:33%"></div>
+                  <div class="timeline-thumb" id="timeline-thumb" style="left:33%"></div>
+                  <!-- Year dots -->
+                  <div class="timeline-dot available" style="left:0%" title="2022" data-year="2022"></div>
+                  <div class="timeline-dot available current" style="left:33%" title="2023" data-year="2023"></div>
+                  <div class="timeline-dot" style="left:66%" title="2024" data-year="2024"></div>
+                  <div class="timeline-dot" style="left:100%" title="2025" data-year="2025"></div>
+                </div>
+                <div class="timeline-labels">
+                  <button class="timeline-year-btn" data-year="2022" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">2022</button>
+                  <button class="timeline-year-btn" data-year="2023" style="background:none;border:none;cursor:pointer;color:var(--cyan-300);font-size:11px;font-family:var(--font-mono);font-weight:700">2023</button>
+                  <button class="timeline-year-btn" data-year="2024" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">2024</button>
+                  <button class="timeline-year-btn" data-year="2025" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">2025</button>
+                </div>
+              </div>
+              <div style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--cyan-300);white-space:nowrap" id="timeline-label">2023</div>
+            </div>
+
+            <!-- Coordinates display -->
+            <div class="map-coords-display" id="map-coords" aria-live="off">—</div>
+          </div>
+
+          <!-- Map NLP bar (below map) -->
+          <div class="map-nlp-bar">
+            <!-- Layer toggles -->
+            <div style="display:flex;gap:var(--space-2);flex:1;flex-wrap:wrap">
+              <div class="layer-toggle" data-layer="ndvi" role="checkbox" aria-checked="false" tabindex="0" aria-label="Vegetation (NDVI) layer">
+                <div class="layer-swatch" style="background:linear-gradient(135deg,var(--green-500),var(--green-300))"></div>
+                <span class="layer-name">Vegetation (NDVI)</span>
+                <div class="toggle-switch" aria-hidden="true"></div>
+              </div>
+              <div class="layer-toggle" data-layer="change" role="checkbox" aria-checked="false" tabindex="0" aria-label="Change detection layer">
+                <div class="layer-swatch" style="background:linear-gradient(135deg,var(--rose-500),var(--amber-400))"></div>
+                <span class="layer-name">Change</span>
+                <div class="toggle-switch" aria-hidden="true"></div>
+              </div>
+              <div class="layer-toggle" data-layer="water" role="checkbox" aria-checked="false" tabindex="0" aria-label="Water body layer">
+                <div class="layer-swatch" style="background:var(--blue-400)"></div>
+                <span class="layer-name">Water</span>
+                <div class="toggle-switch" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="workspace-right" role="complementary" aria-label="Analysis results panel">
+
+          <!-- Query Plan -->
+          <div class="workspace-panel">
+            <div class="panel-header">
+              <div class="panel-title"><span aria-hidden="true">🧠</span> Understanding</div>
+            </div>
+            <div id="query-plan-container">
+              <div class="empty-state" style="padding:var(--space-8)">
+                <div class="empty-state-icon" aria-hidden="true">💬</div>
+                <div class="empty-state-title">Ask a question</div>
+                <div class="empty-state-sub">SatQuery will convert it into a structured analysis plan</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent Plan -->
+          <div class="workspace-panel">
+            <div id="agent-plan-container">
+              <div class="panel-title" style="margin-bottom:var(--space-3)"><span aria-hidden="true">🤖</span> Agent Plan</div>
+              <div class="empty-state" style="padding:var(--space-6)">
+                <div class="empty-state-icon" aria-hidden="true">🕸️</div>
+                <div class="empty-state-sub">Tool routing will appear after query</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="result-panel" role="region" aria-label="Analysis results and evidence" aria-live="polite"></div>
+
+          <!-- Expert-only raw output -->
+          <div class="workspace-panel expert-only">
+            <div class="panel-title" style="margin-bottom:var(--space-3)"><span aria-hidden="true">⚙️</span> Expert Output</div>
+            <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--green-300);background:var(--bg-panel);border-radius:var(--radius-md);padding:var(--space-3);max-height:200px;overflow-y:auto" id="expert-raw-output">
+              — Awaiting analysis —
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════ HISTORY VIEW ════════ -->
+      <section id="history-view" class="view" aria-label="Analysis History">
+        <div class="page-content">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-6)">
+            <div>
+              <h2 style="margin-bottom:var(--space-1)">My Analyses</h2>
+              <p style="margin:0">Local history — stored in your browser</p>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="clearAllHistory?.()">Clear All</button>
+          </div>
+          <div id="history-list" role="list" aria-label="Analysis history list"></div>
+        </div>
+      </section>
+
+      <!-- ════════ COMPARE VIEW ════════ -->
+      <section id="compare-view" class="view" aria-label="Compare Locations">
+        <div class="page-content">
+          <div style="margin-bottom:var(--space-6)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <h2 style="margin-bottom:var(--space-1)">Compare Locations</h2>
+                <p>Analyze two regions side-by-side with synchronized maps</p>
+              </div>
+              <span class="badge badge-demo">DEMO</span>
+            </div>
+          </div>
+
+          <div class="dashboard-grid-2" style="margin-bottom:var(--space-5)">
+            <div>
+              <label class="form-label">Location A</label>
+              <select class="form-select" id="compare-loc-a">
+                <option value="ahmedabad">Ahmedabad, Gujarat</option>
+                <option value="surat">Surat, Gujarat</option>
+                <option value="gandhinagar">Gandhinagar, Gujarat</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Location B</label>
+              <select class="form-select" id="compare-loc-b">
+                <option value="surat">Surat, Gujarat</option>
+                <option value="ahmedabad">Ahmedabad, Gujarat</option>
+                <option value="vadodara">Vadodara, Gujarat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="split-maps" style="height:400px;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--border-subtle);position:relative">
+            <div style="position:relative"><div id="compare-map-a" style="height:100%"></div><div class="comparison-label before">Location A</div></div>
+            <div style="position:relative"><div id="compare-map-b" style="height:100%"></div><div class="comparison-label after">Location B</div></div>
+            <div class="split-label">SYNCHRONIZED MAPS</div>
+          </div>
+
+          <div class="dashboard-grid-4" style="margin-top:var(--space-5)">
+            <div class="stat-card"><div class="stat-label">NDVI — Location A</div><div class="stat-value" style="color:var(--green-300)">0.342</div><div class="stat-sub badge-demo" style="font-size:10px">DEMO VALUE</div></div>
+            <div class="stat-card"><div class="stat-label">NDVI — Location B</div><div class="stat-value" style="color:var(--green-300)">0.287</div><div class="stat-sub badge-demo" style="font-size:10px">DEMO VALUE</div></div>
+            <div class="stat-card"><div class="stat-label">Urban — Location A</div><div class="stat-value" style="color:var(--amber-300)">36.1%</div><div class="stat-sub" style="font-size:10px">DEMO VALUE</div></div>
+            <div class="stat-card"><div class="stat-label">Urban — Location B</div><div class="stat-value" style="color:var(--amber-300)">28.4%</div><div class="stat-sub" style="font-size:10px">DEMO VALUE</div></div>
+          </div>
+
+          <div style="margin-top:var(--space-4);padding:var(--space-4);background:hsla(38,95%,58%,0.08);border:1px solid hsla(38,95%,58%,0.2);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--amber-300)">
+            ⚠ All comparison statistics are from the DEMO dataset. Real comparison requires live data from Copernicus or Bhuvan API (PLANNED).
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ MONITORING VIEW ════════ -->
+      <section id="monitoring-view" class="view" aria-label="Monitor Area">
+        <div class="page-content">
+          <div id="monitoring-content"></div>
+        </div>
+      </section>
+
+      <!-- ════════ DATA SOURCES VIEW ════════ -->
+      <section id="datasources-view" class="view" aria-label="Data Sources">
+        <div class="page-content">
+          <div style="margin-bottom:var(--space-6)">
+            <h2 style="margin-bottom:var(--space-1)">Data Sources</h2>
+            <p>Satellite data platforms integrated or planned for integration with SatQuery AI</p>
+          </div>
+          <div id="datasources-content"></div>
+        </div>
+      </section>
+
+      <!-- ════════ RESEARCH VIEW ════════ -->
+      <section id="research-view" class="view" aria-label="Research Lab">
+        <div class="page-content">
+          <div style="margin-bottom:var(--space-6)">
+            <h2 style="margin-bottom:var(--space-1)">Research Lab</h2>
+            <p>Models, datasets, and tools used or planned in the SatQuery AI pipeline</p>
+          </div>
+          <div id="research-content"></div>
+        </div>
+      </section>
+
+      <!-- ════════ ARCHITECTURE VIEW ════════ -->
+      <section id="architecture-view" class="view" aria-label="System Architecture">
+        <div class="page-content">
+          <div style="margin-bottom:var(--space-6)">
+            <h2 style="margin-bottom:var(--space-1)">Architecture Visualizer</h2>
+            <p>Click any node to explore its purpose, technology, inputs, and current status</p>
+          </div>
+          <div id="architecture-content"></div>
+        </div>
+      </section>
+
+      <!-- ════════ HEALTH VIEW ════════ -->
+      <section id="health-view" class="view" aria-label="System Health">
+        <div class="page-content">
+          <div id="health-content"></div>
+        </div>
+      </section>
+
+      <!-- ════════ JUDGE MODE VIEW ════════ -->
+      <section id="judge-view" class="view" aria-label="Judge Mode">
+        <div class="page-content">
+          <div style="margin-bottom:var(--space-6)">
+            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-2)">
+              <h2>Judge Mode</h2>
+              <span class="badge badge-cyan">SIH 2025</span>
+            </div>
+            <p>Complete technical overview for evaluators — problem, solution, architecture, features, and evidence</p>
+          </div>
+          <div id="judge-content"></div>
+        </div>
+      </section>
+
+    </main><!-- /view-container -->
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- ════════════════════════════════════════════
+     TOAST CONTAINER
+════════════════════════════════════════════ -->
+<div id="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+
+<!-- ════════════════════════════════════════════
+     TOOL DETAIL MODAL
+════════════════════════════════════════════ -->
+<div id="tool-modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tool-modal-title">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+      <div id="tool-modal-title" style="font-size:var(--text-xs);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple-300)">Tool Details</div>
+      <button class="icon-btn" onclick="document.getElementById('tool-modal-backdrop').classList.remove('open')" aria-label="Close">✕</button>
+    </div>
+    <div id="tool-modal-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     EVIDENCE MODAL
+════════════════════════════════════════════ -->
+<div id="evidence-modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="evidence-modal-title">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+      <div id="evidence-modal-title" style="font-size:var(--text-xs);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-300)">Evidence Details</div>
+      <button class="icon-btn" onclick="document.getElementById('evidence-modal-backdrop').classList.remove('open')" aria-label="Close">✕</button>
+    </div>
+    <div id="evidence-modal-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SIH DEMO MODE OVERLAY
+════════════════════════════════════════════ -->
+<div id="demo-mode-overlay" role="dialog" aria-modal="true" aria-label="SIH Demo Mode">
+  <div style="max-width:700px;width:100%">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-6)">
+      <div style="display:flex;align-items:center;gap:var(--space-3)">
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--cyan-500),var(--purple-500));border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--glow-cyan)" aria-hidden="true">🚀</div>
+        <div>
+          <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-300)">SIH 2025 — DEMO MODE</div>
+          <h2 style="font-size:var(--text-2xl)">SatQuery AI</h2>
+        </div>
+      </div>
+      <button id="close-demo-btn" class="icon-btn" aria-label="Close demo mode">✕</button>
+    </div>
+
+    <!-- Progress -->
+    <div style="margin-bottom:var(--space-6)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+        <span style="font-size:var(--text-xs);color:var(--text-muted)">Step <span id="demo-step-num">1</span> / 10</span>
+        <span style="font-size:var(--text-xs);color:var(--cyan-300)">3-Minute Demo</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="demo-progress" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div style="min-height:120px;margin-bottom:var(--space-6)">
+      <h3 id="demo-step-title" style="font-size:var(--text-2xl);color:var(--text-primary);margin-bottom:var(--space-3)"></h3>
+      <p id="demo-narration" style="font-size:var(--text-base);color:var(--text-secondary);line-height:1.7"></p>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="padding:var(--space-3);background:hsla(38,95%,58%,0.08);border:1px solid hsla(38,95%,58%,0.2);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--amber-300)">
+      🛰️ All analysis in this demo uses curated simulation data. Real-time satellite data acquisition requires external API integration (PLANNED).
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SETTINGS MODAL (API KEYS)
+════════════════════════════════════════════ -->
+<div id="settings-modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+  <div class="modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4); position: sticky; top: 0; background: var(--bg-panel); z-index: 10; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+      <div id="settings-modal-title" style="font-size:var(--text-lg);font-weight:700;color:var(--text-primary)">⚙️ Settings</div>
+      <button class="icon-btn" onclick="document.getElementById('settings-modal-backdrop').classList.remove('open')" aria-label="Close">✕</button>
+    </div>
+    
+    <div style="display:flex; flex-direction: column; gap: var(--space-5);">
+      
+      <!-- General -->
+      <section>
+        <h3 style="font-size: var(--text-sm); color: var(--cyan-300); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.1em;">General</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: var(--text-sm);">Theme</label>
+          <select class="form-select" style="width: auto;">
+            <option>System Default</option>
+            <option>Light</option>
+            <option>Dark</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Language -->
+      <section>
+        <h3 style="font-size: var(--text-sm); color: var(--cyan-300); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.1em;">Language</h3>
+        <div style="display: flex; gap: var(--space-2);">
+          <button class="btn btn-secondary active">English</button>
+          <button class="btn btn-ghost">Hindi (हिंदी)</button>
+          <button class="btn btn-ghost">Gujarati (ગુજરાતી)</button>
+        </div>
+      </section>
+
+      <!-- Analysis -->
+      <section>
+        <h3 style="font-size: var(--text-sm); color: var(--cyan-300); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.1em;">Analysis & API Keys</h3>
+        <div style="margin-bottom: var(--space-3);">
+          <label for="gee-client-id" class="form-label" style="display:flex; justify-content:space-between;">
+            <span>Google Earth Engine Client ID</span>
+            <span class="badge badge-cyan" style="font-size: 9px;">LIVE DATA</span>
+          </label>
+          <input type="text" id="gee-client-id" class="form-input" placeholder="...apps.googleusercontent.com" style="width:100%;">
+        </div>
+        <div style="margin-bottom: var(--space-3);">
+          <label for="gemini-api-key" class="form-label" style="display:flex; justify-content:space-between;">
+            <span>Gemini LLM API Key</span>
+            <span class="badge badge-cyan" style="font-size: 9px;">INTELLIGENCE</span>
+          </label>
+          <input type="password" id="gemini-api-key" class="form-input" placeholder="AIzaSy..." style="width:100%;">
+        </div>
+        <div style="margin-bottom: var(--space-3);">
+          <label for="copernicus-api-key" class="form-label" style="display:flex; justify-content:space-between;">
+            <span>Copernicus Dataspace Token</span>
+          </label>
+          <input type="password" id="copernicus-api-key" class="form-input" placeholder="ey..." style="width:100%;">
+        </div>
+      </section>
+
+      <!-- About -->
+      <section>
+        <h3 style="font-size: var(--text-sm); color: var(--cyan-300); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.1em;">About</h3>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">
+          SatQuery AI (SIH26167)<br>
+          A prototype for the Smart India Hackathon 2025.<br>
+          Version: 1.0.0-demo
+        </p>
+      </section>
+
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap: var(--space-2); margin-top: var(--space-6); position: sticky; bottom: 0; background: var(--bg-panel); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle);">
+      <button class="btn btn-ghost" onclick="document.getElementById('settings-modal-backdrop').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<!-- Google APIs -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@google/earthengine@0.1.393/build/ee_api_js.js"></script>
+
+</body>
+</html>

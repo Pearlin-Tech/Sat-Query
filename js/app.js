@@ -89,7 +89,8 @@ function navigateTo(viewId) {
     compare: 'Compare Locations',
     monitoring: 'Monitor Area',
   };
-  $('#topbar-title').textContent = titles[viewId] || 'SatQuery AI';
+  const topbarTitle = $('#topbar-title');
+  if (topbarTitle) topbarTitle.textContent = titles[viewId] || 'SatQuery AI';
 }
 
 // ─────────────────────────────────────────
@@ -471,10 +472,11 @@ function renderResultPanel(plan, analysisResult, evidenceScore, uncertainty, ans
   const traceEl = document.createElement('div');
   traceEl.className = 'workspace-panel';
   const traceId = `trace-${Date.now()}`;
+  const traceToggleId = `trace-toggle-${Date.now()}`;
   traceEl.innerHTML = `
     <div class="panel-header">
       <div class="panel-title">❓ ${t('answer_trace')}</div>
-      <button class="btn btn-ghost btn-sm" onclick="$('#${traceId}').classList.toggle('open')">Show ▾</button>
+      <button class="btn btn-ghost btn-sm" id="${traceToggleId}">Show ▾</button>
     </div>
     <div id="${traceId}" class="answer-trace" style="display:none">
       ${answerTrace.map(r => `
@@ -484,15 +486,17 @@ function renderResultPanel(plan, analysisResult, evidenceScore, uncertainty, ans
         </div>
       `).join('')}
     </div>
-    <script>
-      document.getElementById('${traceId}').previousElementSibling.querySelector('button').onclick = function() {
-        const el = document.getElementById('${traceId}');
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        this.textContent = el.style.display === 'none' ? 'Show ▾' : 'Hide ▴';
-      }
-    </script>
   `;
   container.appendChild(traceEl);
+  const toggleBtn = document.getElementById(traceToggleId);
+  const traceBody = document.getElementById(traceId);
+  if (toggleBtn && traceBody) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = traceBody.style.display === 'none';
+      traceBody.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.textContent = isHidden ? 'Hide ▴' : 'Show ▾';
+    });
+    }
 
   // Challenge Result
   const challengeEl = document.createElement('div');
@@ -502,12 +506,22 @@ function renderResultPanel(plan, analysisResult, evidenceScore, uncertainty, ans
       <div class="panel-title">⚡ ${t('challenge')}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--space-2)">
-      <button class="btn btn-secondary btn-sm" onclick="app.showEvidenceModal()">Show Evidence</button>
-      <button class="btn btn-secondary btn-sm" onclick="app.rerunAnalysis()">Recalculate</button>
-      <button class="btn btn-secondary btn-sm" onclick="app.changeRegion()">Change Region</button>
-      <button class="btn btn-secondary btn-sm" onclick="app.inspectInput()">Inspect Input</button>
+      <button class="btn btn-secondary btn-sm" data-action="evidence">Show Evidence</button>
+      <button class="btn btn-secondary btn-sm" data-action="rerun">Recalculate</button>
+      <button class="btn btn-secondary btn-sm" data-action="region">Change Region</button>
+      <button class="btn btn-secondary btn-sm" data-action="inspect">Inspect Input</button>
     </div>
   `;
+  // Wire up challenge buttons
+  challengeEl.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (action === 'evidence') window.app?.showEvidenceModal?.();
+      else if (action === 'rerun') window.app?.rerunAnalysis?.();
+      else if (action === 'region') window.app?.changeRegion?.();
+      else if (action === 'inspect') window.app?.inspectInput?.();
+    });
+  });
   container.appendChild(challengeEl);
 
   // Alternatives if blocked
@@ -610,6 +624,14 @@ async function handleFileUpload(file) {
   toast(`Dataset loaded: ${profile.health}% health score`, 'success');
 }
 
+window.removeDataset = () => {
+  state.currentProfile = null;
+  const container = $('#dataset-profile-container');
+  if (container) container.innerHTML = '';
+  renderSuggestions(generateSuggestions(null));
+  toast('Dataset removed', 'info');
+};
+
 function renderDatasetProfile(profile) {
   const container = $('#dataset-profile-container');
   if (!container) return;
@@ -620,8 +642,9 @@ function renderDatasetProfile(profile) {
   container.innerHTML = `
     <div class="dataset-profile">
       <div class="dataset-profile-header">
-        <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-300);margin-bottom:var(--space-2)">
-          📂 Dataset Profile ${profile.isDemo ? '<span class="badge badge-demo">DEMO</span>' : ''}
+        <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-300);margin-bottom:var(--space-2);display:flex;justify-content:space-between;">
+          <span>📂 Dataset Profile ${profile.isDemo ? '<span class="badge badge-demo">DEMO</span>' : ''}</span>
+          <button class="btn btn-ghost btn-sm" onclick="removeDataset()" aria-label="Remove dataset">✕ Remove</button>
         </div>
         <div style="font-size:var(--text-sm);font-weight:600;color:var(--text-primary);margin-bottom:var(--space-1)">${profile.filename}</div>
         <div style="font-size:var(--text-xs);color:var(--text-muted)">${profile.sensor} · ${profile.filesize}</div>
@@ -952,7 +975,8 @@ export function init() {
   $('#clear-aoi-btn')?.addEventListener('click', () => {
     clearAOI();
     state.aoiActive = false;
-    $('#aoi-info-container')?.innerHTML?.('');
+    const aoiContainer = document.getElementById('aoi-info-container');
+    if (aoiContainer) aoiContainer.innerHTML = '';
     toast('AOI cleared', 'info', 1500);
   });
 
