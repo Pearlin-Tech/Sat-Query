@@ -56,6 +56,16 @@ function navigateTo(viewId) {
   $$('.nav-item').forEach(n => n.classList.remove('active'));
   $(`.nav-item[data-view="${viewId}"]`)?.classList.add('active');
 
+  const aboutViews = ['datasources', 'research', 'architecture', 'health', 'judge'];
+  if (aboutViews.includes(viewId)) {
+    const aboutToggle = $('#about-nav-toggle');
+    const aboutGroup = $('#nav-group-about');
+    if (aboutToggle && aboutGroup) {
+      aboutToggle.setAttribute('aria-expanded', 'true');
+      aboutGroup.classList.add('open');
+    }
+  }
+
   $$('.view').forEach(v => v.classList.remove('active'));
   const targetView = $(`#${viewId}-view`);
   if (targetView) {
@@ -857,6 +867,24 @@ export function init() {
     item.addEventListener('click', () => navigateTo(item.dataset.view));
     item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo(item.dataset.view); } });
   });
+
+  // Wire up About expandable menu toggle
+  const aboutToggle = $('#about-nav-toggle');
+  const aboutGroup = $('#nav-group-about');
+  if (aboutToggle && aboutGroup) {
+    const toggleAbout = (e) => {
+      if (e) e.preventDefault();
+      const isExpanded = aboutToggle.getAttribute('aria-expanded') === 'true';
+      aboutToggle.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+      aboutGroup.classList.toggle('open', !isExpanded);
+    };
+    aboutToggle.addEventListener('click', toggleAbout);
+    aboutToggle.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        toggleAbout(e);
+      }
+    });
+  }
 
   // Query form
   const queryInput = $('#query-input');

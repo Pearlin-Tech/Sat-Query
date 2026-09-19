@@ -206,11 +206,19 @@
     <button class="nav-item" data-view="history" aria-label="My Analyses">📂 My Analyses</button>
     <button class="nav-item" data-view="compare" aria-label="Compare Locations">⚖️ Compare</button>
     <button class="nav-item" data-view="monitoring" aria-label="Monitor Area">📡 Monitor</button>
-    <button class="nav-item" data-view="datasources" aria-label="Data Sources">🛰️ Data Sources</button>
-    <button class="nav-item" data-view="research" aria-label="Research Lab">🔬 Research Lab</button>
-    <button class="nav-item" data-view="architecture" aria-label="System Architecture">🏗️ Architecture</button>
-    <button class="nav-item" data-view="health" aria-label="System Health">💚 System Health</button>
-    <button class="nav-item" data-view="judge" aria-label="Judge Mode" style="margin-left:auto;opacity:0.5" id="judge-access-btn">🎯 Judge Mode</button>
+    <div class="nav-group" id="nav-group-about">
+      <button class="nav-item nav-group-toggle" id="about-nav-toggle" aria-expanded="false" aria-controls="about-submenu" aria-label="About SatQuery AI">
+        <span>ℹ️ About</span>
+        <span class="nav-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="nav-submenu" id="about-submenu" role="group" aria-label="About Submenu">
+        <button class="nav-item nav-sub-item" data-view="datasources" aria-label="Data Sources">🛰️ Data Sources</button>
+        <button class="nav-item nav-sub-item" data-view="research" aria-label="Research Lab">🔬 Research Lab</button>
+        <button class="nav-item nav-sub-item" data-view="architecture" aria-label="System Architecture">🏗️ Architecture</button>
+        <button class="nav-item nav-sub-item" data-view="health" aria-label="System Health">💚 System Health</button>
+        <button class="nav-item nav-sub-item" data-view="judge" aria-label="Judge Mode" id="judge-access-btn">🎯 Judge Mode</button>
+      </div>
+    </div>
 
     <!-- Mode toggle in nav -->
     <div style="display:flex;align-items:center;gap:4px;margin-top:auto;padding:var(--space-4);border-top:1px solid var(--border-subtle)">
